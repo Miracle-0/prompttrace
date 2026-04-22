@@ -18,19 +18,36 @@ export interface ParseSessionResult {
 export function parseSessionFile(raw: string, sourceSessionId: string): ParseSessionResult {
   const { records, errors } = parseJsonl(raw);
   const messages: Message[] = [];
+  const parseErrors: { line: number; message: string }[] = errors.map((e) => ({
+    line: e.line,
+    message: e.message,
+  }));
   let cwd: string | null = null;
-  for (const record of records) {
-    const entry = record as RawEntry;
-    if (entry.type === 'system') continue;
-    if (entry.cwd && !cwd) cwd = entry.cwd;
-    const content = normalizeContent(entry.message.content);
-    messages.push({
-      uuid: entry.uuid,
-      parentUuid: entry.parentUuid ?? null,
-      role: entry.type === 'user' ? 'user' : 'assistant',
-      timestamp: entry.timestamp,
-      content,
-    });
+  for (let i = 0; i < records.length; i++) {
+    try {
+      const entry = records[i] as RawEntry;
+      if (!entry || typeof entry !== 'object') {
+        parseErrors.push({ line: -1, message: `record ${i}: not an object` });
+        continue;
+      }
+      if (entry.type === 'system') continue;
+      if (!entry.message || entry.uuid == null) {
+        parseErrors.push({ line: -1, message: `record ${i}: missing message or uuid` });
+        continue;
+      }
+      if (entry.cwd && !cwd) cwd = entry.cwd;
+      const content = normalizeContent(entry.message.content);
+      messages.push({
+        uuid: entry.uuid,
+        parentUuid: entry.parentUuid ?? null,
+        role: entry.type === 'user' ? 'user' : 'assistant',
+        timestamp: entry.timestamp,
+        content,
+      });
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err);
+      parseErrors.push({ line: -1, message: `record ${i}: ${message}` });
+    }
   }
   const meta: SessionMeta = {
     sourceSessionId,
@@ -42,7 +59,7 @@ export function parseSessionFile(raw: string, sourceSessionId: string): ParseSes
   };
   return {
     session: { meta, messages },
-    parseErrors: errors.map((e) => ({ line: e.line, message: e.message })),
+    parseErrors,
   };
 }
 

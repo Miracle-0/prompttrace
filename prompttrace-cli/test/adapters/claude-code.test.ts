@@ -30,3 +30,16 @@ test('parseSessionFile normalizes assistant content arrays', async () => {
   assert.equal(assistant.role, 'assistant');
   assert.deepEqual(assistant.content, [{ type: 'text', text: 'Hi!' }]);
 });
+
+test('parseSessionFile surfaces shape-broken records without losing good ones', async () => {
+  const raw = await readFile(
+    join(here, '../../fixtures/claude-code/malformed.jsonl'),
+    'utf8',
+  );
+  const { session, parseErrors } = parseSessionFile(raw, 'malformed-s');
+  assert.equal(session.messages.length, 2);
+  assert.equal(session.messages[0].uuid, 'u1');
+  assert.equal(session.messages[1].uuid, 'u3');
+  assert.equal(parseErrors.length, 1);
+  assert.match(parseErrors[0].message, /missing message/);
+});
