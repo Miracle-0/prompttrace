@@ -6,7 +6,7 @@ import { randomBytes } from 'node:crypto';
 import { confirm } from '@inquirer/prompts';
 import { join } from 'node:path';
 import { discoverSessions, parseSessionFile } from '../adapters/claude-code.js';
-import { applyRules } from '../sanitize/engine.js';
+import { applyRules, applyRulesToString } from '../sanitize/engine.js';
 import { ALL_RULES } from '../sanitize/rules/index.js';
 import { findGitRoot } from '../lib/git.js';
 import { slugify, resolveSlug } from '../writer/slug.js';
@@ -45,11 +45,13 @@ export async function runExport(opts: ExportOptions): Promise<number> {
   const gitRoot = await findGitRoot(process.cwd());
   if (!gitRoot) {
     if (opts.fromHook) return 0;
-    const ok = await confirm({
-      message: 'Current directory is not inside a git repo. Write anyway?',
-      default: false,
-    });
-    if (!ok) return 0;
+    if (!opts.yes) {
+      const ok = await confirm({
+        message: 'Current directory is not inside a git repo. Write anyway?',
+        default: false,
+      });
+      if (!ok) return 0;
+    }
   }
 
   if (opts.fromHook) {
@@ -57,11 +59,12 @@ export async function runExport(opts: ExportOptions): Promise<number> {
     if (!proceed) return 0;
   }
 
-  const meta = await askMetaInputs({
-    title: session.meta.firstMessagePreview.slice(0, 60),
+  const defaults = {
+    title: session.meta.firstMessagePreview.slice(0, 60) || 'session',
     summary: '',
-    tags: [],
-  });
+    tags: [] as string[],
+  };
+  const meta = opts.yes ? defaults : await askMetaInputs(defaults);
 
   const { stats: preStats } = applyRules(session, ALL_RULES);
 
@@ -77,14 +80,17 @@ export async function runExport(opts: ExportOptions): Promise<number> {
 
   const { session: sanitized, stats } = applyRules(session, choice.rules);
 
+  const safeTitle = applyRulesToString(meta.title, choice.rules);
+  const safeSummary = applyRulesToString(meta.summary, choice.rules);
+
   const targetDir = join(gitRoot ?? process.cwd(), '.prompttrace');
   await mkdir(targetDir, { recursive: true });
-  const base = slugify(meta.title);
+  const base = slugify(safeTitle);
   const entropy = randomBytes(4).toString('hex');
   const name = resolveSlug(base, entropy, (n) => existsSync(join(targetDir, n)));
   const out = writePromptTrace(sanitized, {
-    title: meta.title,
-    summary: meta.summary,
+    title: safeTitle,
+    summary: safeSummary,
     tags: meta.tags,
     rulesApplied: choice.rules.map((r) => r.id),
     redactionCount: stats.total,

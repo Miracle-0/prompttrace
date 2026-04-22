@@ -40,6 +40,18 @@ export function applyRules(session: Session, rules: SanitizeRule[]): ApplyResult
   return { session: { ...session, messages }, stats };
 }
 
+export function applyRulesToString(input: string, rules: SanitizeRule[]): string {
+  let current = input;
+  for (const rule of rules) {
+    try {
+      current = rule.apply(current, { fromToolResult: false }).output;
+    } catch {
+      // spec §6.1
+    }
+  }
+  return current;
+}
+
 function rewriteBlock(
   block: ContentBlock,
   runOn: (text: string, ctx: RuleContext) => string,
