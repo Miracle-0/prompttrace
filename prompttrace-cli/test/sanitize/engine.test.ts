@@ -116,3 +116,29 @@ test('applyRules does not mutate the input session', () => {
   assert.notStrictEqual(out.messages, input.messages);
   assert.notStrictEqual(out.messages[0].content, input.messages[0].content);
 });
+
+test('applyRules falls back to original tool_use input when a rule breaks JSON round-trip', () => {
+  const breakJson: SanitizeRule = {
+    id: 'break',
+    description: 'inserts a stray quote',
+    apply(input) {
+      return { output: input.replace(/"/g, ''), hits: 1 };
+    },
+  };
+  const s: Session = {
+    meta: { sourceSessionId: 's', cwd: null, firstMessagePreview: '', messageCount: 1, startedAt: '', endedAt: '' },
+    messages: [
+      {
+        uuid: 'u1',
+        parentUuid: null,
+        role: 'assistant',
+        timestamp: '',
+        content: [{ type: 'tool_use', id: 't1', name: 'Read', input: { path: '/a' } }],
+      },
+    ],
+  };
+  const { session: out } = applyRules(s, [breakJson]);
+  const block = out.messages[0].content[0];
+  assert.equal(block.type, 'tool_use');
+  if (block.type === 'tool_use') assert.deepEqual(block.input, { path: '/a' });
+});

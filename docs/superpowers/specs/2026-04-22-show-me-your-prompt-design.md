@@ -112,7 +112,7 @@ AI 编程开发者，主要分享用 AI Coding Agent（v1 = Claude Code）完成
 | `api-key` | `sk-ant-...`、`ghp_...`、`AKIA...`、通用 entropy 启发 | `<REDACTED:API_KEY>` |
 | `env-var` | `.env` 读取内容里的 `KEY=value` | `<REDACTED:ENV_VAR>` |
 | `email` | `x@y.z` | `<REDACTED:EMAIL>` |
-| `long-tool-result` | 超过阈值（默认 64 KB）的 tool_result | 保留前/后几行 + `<TRUNCATED:N bytes>` |
+| `long-tool-result` | 超过阈值（默认 64 KB）的 tool_result | 保留前/后几行 + `<TRUNCATED: N bytes>` |
 
 所有规则**在 CLI 里可按 session 开关**，实际应用了哪些记录在 `meta.sanitization.rules_applied`。
 
@@ -248,7 +248,7 @@ URL 形如 `https://github.com/<user>/<repo>/blob/<ref>/.../*.prompttrace.jsonl`
 - **tool_use block**：折叠卡片（工具名 + input 摘要），可点开看完整 input
 - **tool_result block**：跟在对应 `tool_use_id` 之后，**默认折叠**，点开才 DOM-append
 - **脱敏占位符**：`<REDACTED:*>` 渲染为灰底 pill（虚线描边），悬停显示"该位置已脱敏"
-- **截断占位符**：`<TRUNCATED:N bytes>` 同上
+- **截断占位符**：`<TRUNCATED: N bytes>` 同上
 
 ### 5.6 主题系统
 

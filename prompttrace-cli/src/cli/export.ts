@@ -42,7 +42,8 @@ export async function runExport(opts: ExportOptions): Promise<number> {
     console.warn(`Warning: ${parseErrors.length} lines could not be parsed and were skipped.`);
   }
 
-  const gitRoot = await findGitRoot(process.cwd());
+  const gitRootStart = opts.fromHook ? (session.meta.cwd ?? process.cwd()) : process.cwd();
+  const gitRoot = await findGitRoot(gitRootStart);
   if (!gitRoot) {
     if (opts.fromHook) return 0;
     if (!opts.yes) {

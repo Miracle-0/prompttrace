@@ -60,7 +60,15 @@ function rewriteBlock(
     return { type: 'text', text: runOn(block.text, { fromToolResult: false }) };
   }
   if (block.type === 'tool_use') {
-    const rewritten = JSON.parse(runOn(JSON.stringify(block.input), { fromToolResult: false }));
+    const before = JSON.stringify(block.input);
+    const after = runOn(before, { fromToolResult: false });
+    let rewritten: unknown = block.input;
+    try {
+      rewritten = JSON.parse(after);
+    } catch {
+      // a rule produced output that no longer round-trips as JSON —
+      // fall back to the pre-sanitized input rather than aborting the export
+    }
     return { ...block, input: rewritten };
   }
   if (block.type === 'tool_result') {
