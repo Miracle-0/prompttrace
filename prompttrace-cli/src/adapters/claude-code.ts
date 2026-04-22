@@ -1,5 +1,7 @@
 import { parseJsonl } from '../lib/jsonl.js';
 import type { ContentBlock, Message, Session, SessionMeta } from '../lib/session.js';
+import { readdir, stat } from 'node:fs/promises';
+import { basename, join } from 'node:path';
 
 interface RawEntry {
   type: 'user' | 'assistant' | 'system';
@@ -75,4 +77,44 @@ function firstText(messages: Message[]): string {
     }
   }
   return '';
+}
+
+export interface SessionRef {
+  id: string;
+  filePath: string;
+  projectDir: string;
+  mtimeMs: number;
+}
+
+export async function discoverSessions(homeDir: string): Promise<SessionRef[]> {
+  const root = join(homeDir, '.claude', 'projects');
+  let projects: string[];
+  try {
+    projects = await readdir(root);
+  } catch {
+    return [];
+  }
+  const refs: SessionRef[] = [];
+  for (const p of projects) {
+    const projectDir = join(root, p);
+    let files: string[];
+    try {
+      files = await readdir(projectDir);
+    } catch {
+      continue;
+    }
+    for (const f of files) {
+      if (!f.endsWith('.jsonl')) continue;
+      const filePath = join(projectDir, f);
+      const st = await stat(filePath);
+      refs.push({
+        id: basename(f, '.jsonl'),
+        filePath,
+        projectDir,
+        mtimeMs: st.mtimeMs,
+      });
+    }
+  }
+  refs.sort((a, b) => b.mtimeMs - a.mtimeMs);
+  return refs;
 }
