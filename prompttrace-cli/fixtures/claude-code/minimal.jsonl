@@ -1,0 +1,3 @@
+{"type":"user","uuid":"u1","parentUuid":null,"timestamp":"2026-04-22T10:00:00Z","cwd":"/Users/andy/proj/blog","message":{"role":"user","content":"Hello from /Users/andy/proj/blog"}}
+{"type":"assistant","uuid":"a1","parentUuid":"u1","timestamp":"2026-04-22T10:00:05Z","message":{"role":"assistant","content":[{"type":"text","text":"Hi!"}]}}
+{"type":"user","uuid":"u2","parentUuid":"a1","timestamp":"2026-04-22T10:00:10Z","cwd":"/Users/andy/proj/blog","message":{"role":"user","content":"Thanks"}}
