@@ -1,0 +1,4 @@
+{"type":"meta","schema_version":1,"source":"claude-code","source_session_id":"sess-1","exported_at":"2026-04-22T11:00:00Z","exported_by":"prompttrace-cli/0.1.0","title":"Minimal fixture","sanitization":{"rules_applied":["abs-path"],"redaction_count":1}}
+{"type":"message","role":"user","uuid":"u1","parent_uuid":null,"timestamp":"2026-04-22T10:00:00Z","content":[{"type":"text","text":"Hello from <REDACTED:ABS_PATH>/proj/blog"}]}
+{"type":"message","role":"assistant","uuid":"a1","parent_uuid":"u1","timestamp":"2026-04-22T10:00:05Z","content":[{"type":"text","text":"Hi!"}]}
+{"type":"message","role":"user","uuid":"u2","parent_uuid":"a1","timestamp":"2026-04-22T10:00:10Z","content":[{"type":"text","text":"Thanks"}]}
