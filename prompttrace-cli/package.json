@@ -1,0 +1,25 @@
+{
+  "name": "prompttrace",
+  "version": "0.1.0",
+  "description": "Share your AI coding sessions on GitHub",
+  "type": "module",
+  "bin": { "prompttrace": "bin/prompttrace.js" },
+  "files": ["bin", "dist"],
+  "engines": { "node": ">=20" },
+  "scripts": {
+    "build": "tsc",
+    "test": "node --test --import tsx 'test/**/*.test.ts'",
+    "prepublishOnly": "npm run build"
+  },
+  "dependencies": {
+    "@inquirer/prompts": "^5.3.8",
+    "commander": "^12.1.0",
+    "diff": "^5.2.0"
+  },
+  "devDependencies": {
+    "@types/diff": "^5.2.1",
+    "@types/node": "^20.14.0",
+    "tsx": "^4.16.0",
+    "typescript": "^5.5.0"
+  }
+}
