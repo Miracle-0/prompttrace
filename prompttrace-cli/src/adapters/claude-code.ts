@@ -4,12 +4,12 @@ import { readdir, stat } from 'node:fs/promises';
 import { basename, join } from 'node:path';
 
 interface RawEntry {
-  type: 'user' | 'assistant' | 'system';
+  type: string;
   uuid: string;
   parentUuid: string | null;
   timestamp: string;
   cwd?: string;
-  message: { role: string; content: string | ContentBlock[] };
+  message: { role: string; content: string | RawBlock[] };
 }
 
 export interface ParseSessionResult {
@@ -32,7 +32,7 @@ export function parseSessionFile(raw: string, sourceSessionId: string): ParseSes
         parseErrors.push({ line: -1, message: `record ${i}: not an object` });
         continue;
       }
-      if (entry.type === 'system') continue;
+      if (entry.type !== 'user' && entry.type !== 'assistant') continue;
       if (!entry.message || entry.uuid == null) {
         parseErrors.push({ line: -1, message: `record ${i}: missing message or uuid` });
         continue;
@@ -65,9 +65,39 @@ export function parseSessionFile(raw: string, sourceSessionId: string): ParseSes
   };
 }
 
-function normalizeContent(raw: string | ContentBlock[]): ContentBlock[] {
+function normalizeContent(raw: string | ContentBlock[] | RawBlock[]): ContentBlock[] {
   if (typeof raw === 'string') return [{ type: 'text', text: raw }];
-  return raw;
+  if (!Array.isArray(raw)) return [];
+  const out: ContentBlock[] = [];
+  for (const b of raw) {
+    if (!b || typeof b !== 'object') continue;
+    if (b.type === 'text' && typeof b.text === 'string') {
+      out.push({ type: 'text', text: b.text });
+    } else if (b.type === 'tool_use' && typeof b.id === 'string' && typeof b.name === 'string') {
+      out.push({ type: 'tool_use', id: b.id, name: b.name, input: b.input });
+    } else if (b.type === 'tool_result' && typeof b.tool_use_id === 'string') {
+      const content = (b as { content?: unknown; output?: unknown }).content ?? (b as { output?: unknown }).output;
+      const output =
+        typeof content === 'string'
+          ? content
+          : content == null
+            ? ''
+            : JSON.stringify(content);
+      out.push({ type: 'tool_result', tool_use_id: b.tool_use_id, output });
+    }
+  }
+  return out;
+}
+
+interface RawBlock {
+  type: string;
+  text?: string;
+  id?: string;
+  name?: string;
+  input?: unknown;
+  tool_use_id?: string;
+  content?: unknown;
+  output?: unknown;
 }
 
 function firstText(messages: Message[]): string {
