@@ -111,3 +111,132 @@ test('parseSessionFile stringifies structured tool_result content', () => {
     assert.match(block.output, /nested/);
   }
 });
+
+test('parseSessionFile: user entry with tool_result block becomes role=tool', () => {
+  const entry = {
+    type: 'user',
+    uuid: 'u1',
+    parentUuid: null,
+    timestamp: '2026-04-22T10:00:00Z',
+    message: {
+      role: 'user',
+      content: [
+        { type: 'tool_result', tool_use_id: 't1', content: 'file body' },
+      ],
+    },
+  };
+  const { session } = parseSessionFile(JSON.stringify(entry), 's');
+  assert.equal(session.messages.length, 1);
+  assert.equal(session.messages[0].role, 'tool');
+});
+
+test('parseSessionFile: user entry with only <local-command-caveat> text is dropped', () => {
+  const entry = {
+    type: 'user',
+    uuid: 'u1',
+    parentUuid: null,
+    timestamp: '2026-04-22T10:00:00Z',
+    message: {
+      role: 'user',
+      content: [
+        {
+          type: 'text',
+          text: '<local-command-caveat>Caveat: ignore this</local-command-caveat>',
+        },
+      ],
+    },
+  };
+  const { session, parseErrors } = parseSessionFile(JSON.stringify(entry), 's');
+  assert.equal(session.messages.length, 0);
+  assert.equal(parseErrors.length, 0);
+});
+
+test('parseSessionFile: user entry with command-name text is dropped', () => {
+  const entry = {
+    type: 'user',
+    uuid: 'u1',
+    parentUuid: null,
+    timestamp: '',
+    message: {
+      role: 'user',
+      content: [
+        { type: 'text', text: '<command-name>/model</command-name>' },
+      ],
+    },
+  };
+  const { session } = parseSessionFile(JSON.stringify(entry), 's');
+  assert.equal(session.messages.length, 0);
+});
+
+test('parseSessionFile: user entry mixing tool_result and local-command text becomes role=tool', () => {
+  const entry = {
+    type: 'user',
+    uuid: 'u1',
+    parentUuid: null,
+    timestamp: '',
+    message: {
+      role: 'user',
+      content: [
+        { type: 'text', text: '<local-command-stdout>noise</local-command-stdout>' },
+        { type: 'tool_result', tool_use_id: 't1', content: 'real output' },
+      ],
+    },
+  };
+  const { session } = parseSessionFile(JSON.stringify(entry), 's');
+  assert.equal(session.messages.length, 1);
+  assert.equal(session.messages[0].role, 'tool');
+});
+
+test('parseSessionFile: user entry with plain text (no markers) stays role=user', () => {
+  const entry = {
+    type: 'user',
+    uuid: 'u1',
+    parentUuid: null,
+    timestamp: '',
+    message: {
+      role: 'user',
+      content: [{ type: 'text', text: 'Hello world' }],
+    },
+  };
+  const { session } = parseSessionFile(JSON.stringify(entry), 's');
+  assert.equal(session.messages.length, 1);
+  assert.equal(session.messages[0].role, 'user');
+});
+
+test('parseSessionFile: with-tool-and-meta fixture yields 4 messages with correct roles', async () => {
+  const raw = await readFile(
+    join(here, '../../fixtures/claude-code/with-tool-and-meta.jsonl'),
+    'utf8',
+  );
+  const { session, parseErrors } = parseSessionFile(raw, 's');
+  assert.equal(parseErrors.length, 0);
+  // u1 user → user
+  // a1 assistant (tool_use) → assistant
+  // u2 user (tool_result) → tool
+  // u3 user (local-command-caveat) → DROPPED
+  // u4 user (command-name) → DROPPED
+  // a2 assistant → assistant
+  // expect 4 messages
+  assert.equal(session.messages.length, 4);
+  assert.deepEqual(
+    session.messages.map((m) => m.role),
+    ['user', 'assistant', 'tool', 'assistant'],
+  );
+  // None of the kept messages should contain local-command markers
+  for (const m of session.messages) {
+    for (const b of m.content) {
+      if (b.type === 'text') {
+        assert.doesNotMatch(b.text, /<local-command-|<command-name>\//);
+      }
+    }
+  }
+  // None of the role:'user' messages should contain a tool_result block
+  for (const m of session.messages) {
+    if (m.role === 'user') {
+      assert.ok(
+        !m.content.some((b) => b.type === 'tool_result'),
+        'user message should not contain tool_result',
+      );
+    }
+  }
+});

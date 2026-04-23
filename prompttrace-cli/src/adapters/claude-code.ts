@@ -32,7 +32,8 @@ export function parseSessionFile(raw: string, sourceSessionId: string): ParseSes
         parseErrors.push({ line: -1, message: `record ${i}: not an object` });
         continue;
       }
-      if (entry.type !== 'user' && entry.type !== 'assistant') continue;
+      const role = inferRole(entry);
+      if (role === null) continue;
       if (!entry.message || entry.uuid == null) {
         parseErrors.push({ line: -1, message: `record ${i}: missing message or uuid` });
         continue;
@@ -42,7 +43,7 @@ export function parseSessionFile(raw: string, sourceSessionId: string): ParseSes
       messages.push({
         uuid: entry.uuid,
         parentUuid: entry.parentUuid ?? null,
-        role: entry.type === 'user' ? 'user' : 'assistant',
+        role,
         timestamp: entry.timestamp,
         content,
       });
@@ -87,6 +88,42 @@ function normalizeContent(raw: string | ContentBlock[] | RawBlock[]): ContentBlo
     }
   }
   return out;
+}
+
+type InferredRole = 'user' | 'assistant' | 'tool' | null;
+
+function inferRole(entry: RawEntry): InferredRole {
+  if (entry.type === 'assistant') return 'assistant';
+  if (entry.type !== 'user') return null;
+  const content = entry.message?.content;
+
+  if (typeof content === 'string') {
+    return isLocalCommandText(content) ? null : 'user';
+  }
+
+  if (Array.isArray(content)) {
+    if (
+      content.some(
+        (b) => !!b && typeof b === 'object' && (b as RawBlock).type === 'tool_result',
+      )
+    ) {
+      return 'tool';
+    }
+    const texts = content.filter(
+      (b): b is { type: 'text'; text: string } =>
+        !!b &&
+        typeof b === 'object' &&
+        (b as RawBlock).type === 'text' &&
+        typeof (b as RawBlock).text === 'string',
+    );
+    if (texts.length > 0 && texts.every((b) => isLocalCommandText(b.text))) return null;
+    return 'user';
+  }
+  return 'user';
+}
+
+function isLocalCommandText(s: string): boolean {
+  return /<local-command-(caveat|stdout|stderr)>|<command-name>\//.test(s);
 }
 
 interface RawBlock {
