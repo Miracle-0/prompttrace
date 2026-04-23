@@ -85,13 +85,17 @@ describe("waitForFileView", () => {
     expect(el).toBeNull();
   });
 
-  it("prefers react-app[app-name=code-view] when both it and #repo-content-pjax-container exist", async () => {
+  it("prefers the inner prc-PageLayout-Content cell inside react-app[app-name=code-view] over react-app itself", async () => {
     const dom = new JSDOM(
       `<!doctype html><html><body>
         <main>
-          <div id="repo-content-pjax-container">
-            <react-app app-name="code-view">ra</react-app>
-          </div>
+          <react-app app-name="code-view">
+            <div class="prc-PageLayout-PageLayoutContent-BneH9">
+              <div class="prc-PageLayout-ContentWrapper-gR9eG">
+                <div class="prc-PageLayout-Content-xWL-A">code cell</div>
+              </div>
+            </div>
+          </react-app>
         </main>
       </body></html>`,
     );
@@ -99,8 +103,7 @@ describe("waitForFileView", () => {
     (globalThis as any).document = dom.window.document;
     (globalThis as any).HTMLElement = dom.window.HTMLElement;
     const el = await waitForFileView(100);
-    expect(el?.tagName.toLowerCase()).toBe("react-app");
-    expect(el?.getAttribute("app-name")).toBe("code-view");
+    expect(el?.className).toBe("prc-PageLayout-Content-xWL-A");
   });
 
   it("falls back to [data-testid=code-view] when react-app is absent", async () => {

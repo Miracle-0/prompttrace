@@ -1,7 +1,7 @@
 const CONTAINER_ID = "prompttrace-container";
 
 const SELECTORS = [
-  'react-app[app-name="code-view"]',
+  'react-app[app-name="code-view"] [class*="prc-PageLayout-Content-"]:not([class*="PageLayoutContent"]):not([class*="ContentWrapper"])',
   '[data-testid="code-view"]',
 ];
 
