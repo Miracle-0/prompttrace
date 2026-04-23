@@ -103,11 +103,13 @@ describe("waitForFileView", () => {
     expect(el?.getAttribute("app-name")).toBe("code-view");
   });
 
-  it("falls back to #repo-content-pjax-container when react-app is absent", async () => {
+  it("falls back to [data-testid=code-view] when react-app is absent", async () => {
     const dom = new JSDOM(
       `<!doctype html><html><body>
         <main>
-          <div id="repo-content-pjax-container">pjax</div>
+          <div class="content-cell">
+            <div data-testid="code-view">testid</div>
+          </div>
         </main>
       </body></html>`,
     );
@@ -115,7 +117,16 @@ describe("waitForFileView", () => {
     (globalThis as any).document = dom.window.document;
     (globalThis as any).HTMLElement = dom.window.HTMLElement;
     const el = await waitForFileView(100);
-    expect(el?.id).toBe("repo-content-pjax-container");
+    expect(el?.getAttribute("data-testid")).toBe("code-view");
+  });
+
+  it("does NOT fall back to #repo-content-pjax-container", async () => {
+    document.querySelector('[data-testid="code-view"]')!.remove();
+    const pjax = document.createElement("div");
+    pjax.id = "repo-content-pjax-container";
+    document.body.appendChild(pjax);
+    const el = await waitForFileView(50);
+    expect(el).toBeNull();
   });
 
   it("does NOT fall back to document.querySelector('main')", async () => {
