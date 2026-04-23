@@ -111,3 +111,94 @@ test('parseSessionFile stringifies structured tool_result content', () => {
     assert.match(block.output, /nested/);
   }
 });
+
+test('parseSessionFile: user entry with tool_result block becomes role=tool', () => {
+  const entry = {
+    type: 'user',
+    uuid: 'u1',
+    parentUuid: null,
+    timestamp: '2026-04-22T10:00:00Z',
+    message: {
+      role: 'user',
+      content: [
+        { type: 'tool_result', tool_use_id: 't1', content: 'file body' },
+      ],
+    },
+  };
+  const { session } = parseSessionFile(JSON.stringify(entry), 's');
+  assert.equal(session.messages.length, 1);
+  assert.equal(session.messages[0].role, 'tool');
+});
+
+test('parseSessionFile: user entry with only <local-command-caveat> text is dropped', () => {
+  const entry = {
+    type: 'user',
+    uuid: 'u1',
+    parentUuid: null,
+    timestamp: '2026-04-22T10:00:00Z',
+    message: {
+      role: 'user',
+      content: [
+        {
+          type: 'text',
+          text: '<local-command-caveat>Caveat: ignore this</local-command-caveat>',
+        },
+      ],
+    },
+  };
+  const { session, parseErrors } = parseSessionFile(JSON.stringify(entry), 's');
+  assert.equal(session.messages.length, 0);
+  assert.equal(parseErrors.length, 0);
+});
+
+test('parseSessionFile: user entry with command-name text is dropped', () => {
+  const entry = {
+    type: 'user',
+    uuid: 'u1',
+    parentUuid: null,
+    timestamp: '',
+    message: {
+      role: 'user',
+      content: [
+        { type: 'text', text: '<command-name>/model</command-name>' },
+      ],
+    },
+  };
+  const { session } = parseSessionFile(JSON.stringify(entry), 's');
+  assert.equal(session.messages.length, 0);
+});
+
+test('parseSessionFile: user entry mixing tool_result and local-command text becomes role=tool', () => {
+  const entry = {
+    type: 'user',
+    uuid: 'u1',
+    parentUuid: null,
+    timestamp: '',
+    message: {
+      role: 'user',
+      content: [
+        { type: 'text', text: '<local-command-stdout>noise</local-command-stdout>' },
+        { type: 'tool_result', tool_use_id: 't1', content: 'real output' },
+      ],
+    },
+  };
+  const { session } = parseSessionFile(JSON.stringify(entry), 's');
+  assert.equal(session.messages.length, 1);
+  assert.equal(session.messages[0].role, 'tool');
+});
+
+test('parseSessionFile: user entry with plain text (no markers) stays role=user', () => {
+  const entry = {
+    type: 'user',
+    uuid: 'u1',
+    parentUuid: null,
+    timestamp: '',
+    message: {
+      role: 'user',
+      content: [{ type: 'text', text: 'Hello world' }],
+    },
+  };
+  const { session } = parseSessionFile(JSON.stringify(entry), 's');
+  assert.equal(session.messages.length, 1);
+  assert.equal(session.messages[0].role, 'user');
+});
