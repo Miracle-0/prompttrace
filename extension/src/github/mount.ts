@@ -1,8 +1,9 @@
 const CONTAINER_ID = "prompttrace-container";
 
 const SELECTORS = [
+  'react-app[app-name="code-view"]',
   '[data-testid="code-view"]',
-  'react-app[app-name="react-code-view"]',
+  '#repo-content-pjax-container',
 ];
 
 export async function waitForFileView(timeoutMs = 3000): Promise<HTMLElement | null> {

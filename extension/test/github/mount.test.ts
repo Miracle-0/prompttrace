@@ -85,6 +85,39 @@ describe("waitForFileView", () => {
     expect(el).toBeNull();
   });
 
+  it("prefers react-app[app-name=code-view] when both it and #repo-content-pjax-container exist", async () => {
+    const dom = new JSDOM(
+      `<!doctype html><html><body>
+        <main>
+          <div id="repo-content-pjax-container">
+            <react-app app-name="code-view">ra</react-app>
+          </div>
+        </main>
+      </body></html>`,
+    );
+    (globalThis as any).window = dom.window;
+    (globalThis as any).document = dom.window.document;
+    (globalThis as any).HTMLElement = dom.window.HTMLElement;
+    const el = await waitForFileView(100);
+    expect(el?.tagName.toLowerCase()).toBe("react-app");
+    expect(el?.getAttribute("app-name")).toBe("code-view");
+  });
+
+  it("falls back to #repo-content-pjax-container when react-app is absent", async () => {
+    const dom = new JSDOM(
+      `<!doctype html><html><body>
+        <main>
+          <div id="repo-content-pjax-container">pjax</div>
+        </main>
+      </body></html>`,
+    );
+    (globalThis as any).window = dom.window;
+    (globalThis as any).document = dom.window.document;
+    (globalThis as any).HTMLElement = dom.window.HTMLElement;
+    const el = await waitForFileView(100);
+    expect(el?.id).toBe("repo-content-pjax-container");
+  });
+
   it("does NOT fall back to document.querySelector('main')", async () => {
     document.querySelector('[data-testid="code-view"]')!.remove();
     const main = document.createElement("main");
