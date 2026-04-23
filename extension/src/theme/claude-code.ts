@@ -1,10 +1,15 @@
 // v1: single theme. Export a CSS string that the render root injects once.
 export const CLAUDE_CODE_CSS = `
+#prompttrace-container {
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
+}
 .pt-root {
   background: #F5F2EC; color: #2b2622;
   font-family: -apple-system, "SF Pro Text", system-ui, sans-serif;
   font-size: 14px; line-height: 1.55;
-  padding: 20px 24px;
+  padding: 16px 20px;
   border: 1px solid #E5DFD4; border-radius: 8px;
   margin: 12px 0;
 }
@@ -27,7 +32,7 @@ export const CLAUDE_CODE_CSS = `
 .pt-error button { margin-left: auto; background: white; border: 1px solid #D9A89C; color: #8B2E1B; padding: 4px 12px; border-radius: 4px; cursor: pointer; font-weight: 500; }
 .pt-tags { display: flex; gap: 6px; flex-wrap: wrap; }
 .pt-tag { background: white; border: 1px solid #D9D1C2; color: #6e6356; padding: 2px 10px; border-radius: 999px; font-size: 11px; }
-.pt-messages { margin-top: 20px; display: flex; flex-direction: column; gap: 14px; }
+.pt-messages { margin: 20px auto 0; max-width: 960px; display: flex; flex-direction: column; gap: 14px; }
 .pt-msg { max-width: 82%; }
 .pt-msg-user { align-self: flex-end; max-width: 72%; background: #CC7859; color: white; padding: 10px 14px; border-radius: 16px 16px 4px 16px; }
 .pt-msg-assistant, .pt-msg-tool { align-self: flex-start; background: white; border: 1px solid #E5DFD4; padding: 12px 14px; border-radius: 4px 16px 16px 16px; }
