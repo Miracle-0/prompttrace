@@ -1,5 +1,5 @@
 import { blobToRawUrl } from "./github/url.js";
-import { waitForFileView, insertContainerAbove, setNativeViewVisible, type Mounted } from "./github/mount.js";
+import { waitForFileView, mountIntoFileView, setNativeViewVisible, type Mounted } from "./github/mount.js";
 import { JsonlStreamDecoder } from "./parser/jsonl-stream.js";
 import { isMetaRecord, isMessageRecord, isSupportedSchemaVersion, type MetaRecord } from "./parser/schema.js";
 import { renderRoot, type RootApi } from "./render/root.js";
@@ -20,7 +20,7 @@ export class Controller {
     const nativeView = await waitForFileView();
     if (this.state === "disposed") return;
     if (!nativeView) { this.state = "degraded"; return; }
-    this.mounted = insertContainerAbove(nativeView);
+    this.mounted = mountIntoFileView(nativeView);
     try {
       await this.fetchAndRender();
     } catch (e) {
@@ -83,7 +83,6 @@ export class Controller {
           this.api = renderRoot(r, { onToggleRendered: (on) => this.setRendered(on) });
           this.mounted!.container.appendChild(this.api.element);
           this.state = "rendered";
-          setNativeViewVisible(this.mounted!, false);
         }
         onMeta(r);
       } else if (isMessageRecord(r)) {
