@@ -1,11 +1,8 @@
 const CONTAINER_ID = "prompttrace-container";
 
 const SELECTORS = [
-  'react-app[app-name="react-code-view"]',
   '[data-testid="code-view"]',
-  "#repo-content-turbo-frame",
-  "#repo-content-pjax-container",
-  "main",
+  'react-app[app-name="react-code-view"]',
 ];
 
 export async function waitForFileView(timeoutMs = 3000): Promise<HTMLElement | null> {
@@ -29,17 +26,20 @@ export interface Mounted {
   unmount: () => void;
 }
 
-export function insertContainerAbove(nativeView: HTMLElement): Mounted {
+export function mountIntoFileView(codeView: HTMLElement): Mounted {
   removeExistingContainer();
+  const parent = codeView.parentElement;
+  if (!parent) throw new Error("code-view has no parent");
   const container = document.createElement("div");
   container.id = CONTAINER_ID;
-  nativeView.parentElement?.insertBefore(container, nativeView);
-  const originalDisplay = nativeView.style.display;
+  parent.insertBefore(container, codeView);
+  const originalDisplay = codeView.style.display;
+  codeView.style.display = "none";
   const unmount = () => {
     container.remove();
-    nativeView.style.display = originalDisplay;
+    codeView.style.display = originalDisplay;
   };
-  return { container, nativeView, unmount };
+  return { container, nativeView: codeView, unmount };
 }
 
 export function setNativeViewVisible(m: Mounted, visible: boolean): void {
