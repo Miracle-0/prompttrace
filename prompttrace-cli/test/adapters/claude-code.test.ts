@@ -202,3 +202,41 @@ test('parseSessionFile: user entry with plain text (no markers) stays role=user'
   assert.equal(session.messages.length, 1);
   assert.equal(session.messages[0].role, 'user');
 });
+
+test('parseSessionFile: with-tool-and-meta fixture yields 4 messages with correct roles', async () => {
+  const raw = await readFile(
+    join(here, '../../fixtures/claude-code/with-tool-and-meta.jsonl'),
+    'utf8',
+  );
+  const { session, parseErrors } = parseSessionFile(raw, 's');
+  assert.equal(parseErrors.length, 0);
+  // u1 user → user
+  // a1 assistant (tool_use) → assistant
+  // u2 user (tool_result) → tool
+  // u3 user (local-command-caveat) → DROPPED
+  // u4 user (command-name) → DROPPED
+  // a2 assistant → assistant
+  // expect 4 messages
+  assert.equal(session.messages.length, 4);
+  assert.deepEqual(
+    session.messages.map((m) => m.role),
+    ['user', 'assistant', 'tool', 'assistant'],
+  );
+  // None of the kept messages should contain local-command markers
+  for (const m of session.messages) {
+    for (const b of m.content) {
+      if (b.type === 'text') {
+        assert.doesNotMatch(b.text, /<local-command-|<command-name>\//);
+      }
+    }
+  }
+  // None of the role:'user' messages should contain a tool_result block
+  for (const m of session.messages) {
+    if (m.role === 'user') {
+      assert.ok(
+        !m.content.some((b) => b.type === 'tool_result'),
+        'user message should not contain tool_result',
+      );
+    }
+  }
+});
