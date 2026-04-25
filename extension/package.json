@@ -17,5 +17,9 @@
     "jsdom": "^24.1.0",
     "typescript": "^5.5.0",
     "vitest": "^2.0.0"
+  },
+  "dependencies": {
+    "dompurify": "^3.4.1",
+    "marked": "^18.0.2"
   }
 }
